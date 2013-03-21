@@ -1,0 +1,60 @@
+AudioCompress v1.5 (2003/07/05)
+(c)2002-7 busybee (http://beesbuzz.biz/)
+
+Introduction
+============
+
+AudioCompress is a simple one-band dynamic range compressor for
+keeping the volume level of an audio stream more or less consistent.
+
+How it works
+============
+
+AudioCompress keeps a history of the last few seconds and sets the
+amplification so that the loudest peak within that time will be the
+reference for normalizing the sound (i.e. that peak will be amplified
+to full power).  The amplification is smoothly interpolated and goes
+up relatively slowly, and if there's a very sudden loud burst, the
+amplification is dropped quickly (which typically isn't noticeable).
+
+Using AudioCompress
+===================
+
+As a commandline tool
+---------------------
+
+Currently, the commandline tool only accepts raw PCM data on standard
+input as 16-bit native-endian signed data.  Fortunately, this is how
+most audio players output data when you tell it to use stdout.
+
+So, just pipe the raw PCM out from your player into AudioCompress, and
+then into some mechanism of playing sound.  For example, if you're
+using mpg321 and esd, the commandline should be something like:
+
+	mpg321 --stereo -s -@ MyPlaylist.m3u | AudioCompress | esdcat
+
+Adjust accordingly for your OS and player and so on.
+
+Runtime configuration from the commandline can be seen by passing the
+-h option to AudioCompress.
+
+As an EsounD plugin
+-------------------
+
+Unless configured otherwise, the commandline tool can also be used as
+an EsounD (esd) filter, by adding the -e [esd host] option; for
+example:
+
+	esd -nobeeps &
+	AudioCompress -e localhost &
+
+It is highly recommended that you run AudioCompress from the same
+system as esd, due to the large amount of bandwidth which audio
+filters take up.
+
+Contact Information
+===================
+
+Bug reports, patch submission, etc.: fluffy at beesbuzz.biz
+Latest version: http://beesbuzz.biz/code/AudioCompress/
+XMMS homepage: http://www.xmms.org/
