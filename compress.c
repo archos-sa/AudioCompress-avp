@@ -25,6 +25,9 @@ struct Compressor {
         
         //! History of clip amounts
         int *clipped;
+
+        //The maximum gain reached for all the session
+        int minGain;
         
         unsigned int pos;
         unsigned int bufsz;
@@ -41,6 +44,7 @@ struct Compressor *Compressor_new(unsigned int history)
         obj->peaks = obj->gain = obj->clipped = NULL;
 	obj->bufsz = 0;
         obj->pos = 0;
+        obj->minGain = 0;
         
         Compressor_setHistory(obj, history);
         
@@ -100,6 +104,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 	int16_t *ap;
 	int i;
         int *peaks = obj->peaks;
+        int minGain = obj->minGain;
         int curGain = obj->gain[obj->pos];
         int newGain;
         int peakVal = 1;
@@ -132,18 +137,19 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 			peakPos = 0;
 		}
 	}
+        //! Determine target gain
+        newGain = (1 << 10)*prefs->target/peakVal;
+        minGain = (minGain<0)?newGain:minGain;
+        minGain = (minGain > newGain)?newGain:minGain;
 
-	//! Determine target gain
-	newGain = (1 << 10)*prefs->target/peakVal;
-        
         //! Adjust the gain with inertia from the previous gain value
         newGain = (curGain*((1 << prefs->smooth) - 1) + newGain) 
                 >> prefs->smooth;
         
         //! Make sure it's no more than the maximum gain value
-        if (newGain > (prefs->maxgain << 10))
-                newGain = prefs->maxgain << 10;
-        
+        if (newGain > minGain + (prefs->maxgain << 10))
+                newGain = minGain + prefs->maxgain << 10;
+
         //! Make sure it's no less than 1:1
 	if (newGain < (1 << 10))
 		newGain = 1 << 10;
@@ -192,5 +198,6 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 	}
 
         obj->pos = slot;
+        obj->minGain = minGain;
 }
 
