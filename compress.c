@@ -49,31 +49,42 @@ struct Compressor *Compressor_new(unsigned int history)
 
 void Compressor_delete(struct Compressor *obj)
 {
-	if (obj->peaks)
-		free(obj->peaks);
-	if (obj->gain)
-		free(obj->gain);
-	if (obj->clipped)
-		free(obj->clipped);
-	free(obj);
+        if (obj->peaks)
+                free(obj->peaks);
+        if (obj->gain)
+                free(obj->gain);
+        if (obj->clipped)
+                free(obj->clipped);
+        free(obj);
 }
 
-static int *resizeArray(int *data, int newsz, int oldsz)
+static int *resizeArray(int *data, int newsz, int oldsz, int clear)
 {
-        data = realloc(data, newsz*sizeof(int));
-        if (newsz > oldsz)
+        if ((newsz < oldsz) && (clear == 0)) {
+            int tmp = realloc(NULL, newsz*sizeof(int));
+            memcpy(tmp, &data[oldsz-1 - newsz], newsz*sizeof(int));
+            free(data);
+            data = tmp;
+        } else {
+            data = realloc(data, newsz*sizeof(int));
+            if (newsz > oldsz) {
                 memset(data + oldsz, 0, sizeof(int)*(newsz - oldsz));
+             } else {
+                if (clear) memset(data, 0, sizeof(int)*newsz);
+             }
+        }
         return data;
 }
 
 void Compressor_setHistory(struct Compressor *obj, unsigned int history)
 {
-	if (!history)
+        if (!history)
                 history = BUCKETS;
         
-        obj->peaks = resizeArray(obj->peaks, history, obj->bufsz);
-        obj->gain = resizeArray(obj->gain, history, obj->bufsz);
-        obj->clipped = resizeArray(obj->clipped, history, obj->bufsz);
+        obj->peaks = resizeArray(obj->peaks, history, obj->bufsz, 0);
+        obj->gain = resizeArray(obj->gain, history, obj->bufsz, 1);
+        obj->clipped = resizeArray(obj->clipped, history, obj->bufsz, 1);
+        obj->minGain = -1;
         obj->bufsz = history;
 }
 
