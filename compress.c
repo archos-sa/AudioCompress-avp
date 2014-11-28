@@ -35,14 +35,14 @@ struct Compressor {
 
 struct Compressor *Compressor_new(unsigned int history)
 {
-	struct Compressor *obj = malloc(sizeof(struct Compressor));
+        struct Compressor *obj = malloc(sizeof(struct Compressor));
 
-	obj->prefs.target = TARGET;
-	obj->prefs.maxgain = GAINMAX;
-	obj->prefs.smooth = GAINSMOOTH;
+        obj->prefs.target = TARGET;
+        obj->prefs.maxgain = GAINMAX;
+        obj->prefs.smooth = GAINSMOOTH;
 
         obj->peaks = obj->gain = obj->clipped = NULL;
-	obj->bufsz = 0;
+        obj->bufsz = 0;
         obj->pos = 0;
         obj->minGain = 0;
         
@@ -101,8 +101,8 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                               unsigned int count)
 {
         struct CompressorConfig *prefs = Compressor_getConfig(obj);
-	int16_t *ap;
-	int i;
+        int16_t *ap;
+        int i;
         int *peaks = obj->peaks;
         int minGain = obj->minGain;
         int curGain = obj->gain[obj->pos];
@@ -114,29 +114,29 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         int ramp = count;
         int delta;
         
-	ap = audio;
-	for (i = 0; i < count; i++)
-	{
-		int val = *ap++;
+        ap = audio;
+        for (i = 0; i < count; i++)
+        {
+                int val = *ap++;
                 if (val < 0)
                         val = -val;
-		if (val > peakVal)
+                if (val > peakVal)
                 {
-			peakVal = val;
+                        peakVal = val;
                         peakPos = i;
                 }
-	}
-	peaks[slot] = peakVal;
+        }
+        peaks[slot] = peakVal;
 
+        for (i = 0; i < obj->bufsz; i++)
+        {
+                if (peaks[i] > peakVal)
+                {
+                        peakVal = peaks[i];
+                        peakPos = 0;
+                }
+        }
 
-	for (i = 0; i < obj->bufsz; i++)
-	{
-		if (peaks[i] > peakVal)
-		{
-			peakVal = peaks[i];
-			peakPos = 0;
-		}
-	}
         //! Determine target gain
         newGain = (1 << 10)*prefs->target/peakVal;
         minGain = (minGain<0)?newGain:minGain;
@@ -145,14 +145,14 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         //! Adjust the gain with inertia from the previous gain value
         newGain = (curGain*((1 << prefs->smooth) - 1) + newGain) 
                 >> prefs->smooth;
-        
+
         //! Make sure it's no more than the maximum gain value
         if (newGain > minGain + (prefs->maxgain << 10))
                 newGain = minGain + prefs->maxgain << 10;
 
         //! Make sure it's no less than 1:1
-	if (newGain < (1 << 10))
-		newGain = 1 << 10;
+        if (newGain < (1 << 10))
+                newGain = 1 << 10;
 
         //! Make sure the adjusted gain won't cause clipping
         if ((peakVal*newGain >> 10) > 32767)
@@ -169,33 +169,33 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                 ramp = 1;
         if (!curGain)
                 curGain = 1 << 10;
-	delta = (newGain - curGain)/ramp;
+        delta = (newGain - curGain)/ramp;
 
-	ap = audio;
+        ap = audio;
         *clipped = 0;
-	for (i = 0; i < count; i++)
-	{
-		int sample;
+        for (i = 0; i < count; i++)
+        {
+                int sample;
 
-		//! Amplify the sample
-		sample = *ap*curGain >> 10;
-		if (sample < -32768)
-		{
-			*clipped += -32768 - sample;
-			sample = -32768;
-		} else if (sample > 32767)
-		{
-			*clipped += sample - 32767;
-			sample = 32767;
-		}
-		*ap++ = sample;
+                //! Amplify the sample
+                sample = *ap*curGain >> 10;
+                if (sample < -32768)
+                {
+                        *clipped += -32768 - sample;
+                        sample = -32768;
+                } else if (sample > 32767)
+                {
+                        *clipped += sample - 32767;
+                        sample = 32767;
+                }
+                *ap++ = sample;
 
                 //! Adjust the gain
                 if (i < ramp)
                         curGain += delta;
                 else
                         curGain = newGain;
-	}
+        }
 
         obj->pos = slot;
         obj->minGain = minGain;
