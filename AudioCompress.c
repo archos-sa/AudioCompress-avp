@@ -76,7 +76,7 @@ int Run(int argc, char *argv[], struct Compressor *cmp)
 #endif
 		case 't':
 			cfg->target = atoi(optarg);
-			if (cfg->target < 1 || cfg->target > 32767)
+			if (cfg->target < 0 || cfg->target > 32767)
 			{
 				fprintf(stderr,
 					"Invalid target level %s\n", optarg);
