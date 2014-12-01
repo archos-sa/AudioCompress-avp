@@ -138,7 +138,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         }
 
         //! Determine target gain
-        if (peakVal < 50) {
+        if (peakVal < 20) {
             //Clamp noise
             newGain = 0;
 	    fprintf(stderr," clamped\n");
