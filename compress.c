@@ -143,7 +143,8 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
             newGain = minGain + (prefs->maxgain << 10);
 
         //! Adjust the gain with inertia from the previous gain value
-        newGain = (curGain*(prefs->smooth - 1) + newGain) / prefs->smooth;
+	//Smooth value must be independant from count size. Let's normalize it for 512 samples sount
+        newGain = (curGain*(prefs->smooth * 512/count - 1) + newGain) / prefs->smooth * 512/count;
 
         //! Make sure it's no less than 1:1
         if (newGain < (1 << 10))
