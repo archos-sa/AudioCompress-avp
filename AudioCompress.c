@@ -86,7 +86,7 @@ int Run(int argc, char *argv[], struct Compressor *cmp)
 
 		case 'g':
 			cfg->maxgain = atoi(optarg);
-			if (cfg->maxgain < 1 || cfg->maxgain > 255)
+			if (cfg->maxgain < 0 || cfg->maxgain > 255)
 			{
 				fprintf(stderr,
 					"Invalid maximum gain %s\n", optarg);
