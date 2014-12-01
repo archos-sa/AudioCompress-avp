@@ -21,7 +21,7 @@ struct Compressor {
         int *peaks;
                 
         //! History of the gain values
-        int *gain;
+        int lastGain;
 
         //The maximum gain reached for all the session
         int minGain;
@@ -38,10 +38,11 @@ struct Compressor *Compressor_new(unsigned int history)
         obj->prefs.maxgain = GAINMAX;
         obj->prefs.smooth = GAINSMOOTH;
 
-        obj->peaks = obj->gain = NULL;
+        obj->peaks = NULL;
         obj->bufsz = 0;
         obj->pos = 0;
         obj->minGain = -1;
+	obj->lastGain = 0;
         
         Compressor_setHistory(obj, history);
         
@@ -52,8 +53,6 @@ void Compressor_delete(struct Compressor *obj)
 {
         if (obj->peaks)
                 free(obj->peaks);
-        if (obj->gain)
-                free(obj->gain);
         free(obj);
 }
 
@@ -81,7 +80,6 @@ void Compressor_setHistory(struct Compressor *obj, unsigned int history)
                 history = BUCKETS;
         
         obj->peaks = resizeArray(obj->peaks, history, obj->bufsz, 0);
-        obj->gain = resizeArray(obj->gain, history, obj->bufsz, 1);
         obj->minGain = -1;
         obj->bufsz = history;
 }
@@ -99,7 +97,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         int i;
         int *peaks = obj->peaks;
         int minGain = obj->minGain;
-        int lastGain = obj->gain[obj->pos];
+        int lastGain = obj->lastGain;
         int newGain;
         int peakVal = 1;
         int peakPos = 0;
@@ -158,7 +156,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
             ramp = peakPos;
         }
         //! Record the new gain
-        obj->gain[slot] = newGain;
+        obj->lastGain = newGain;
 
         if (!ramp)
                 ramp = 1;
