@@ -22,9 +22,6 @@ struct Compressor {
                 
         //! History of the gain values
         int *gain;
-        
-        //! History of clip amounts
-        int *clipped;
 
         //The maximum gain reached for all the session
         int minGain;
@@ -41,7 +38,7 @@ struct Compressor *Compressor_new(unsigned int history)
         obj->prefs.maxgain = GAINMAX;
         obj->prefs.smooth = GAINSMOOTH;
 
-        obj->peaks = obj->gain = obj->clipped = NULL;
+        obj->peaks = obj->gain = NULL;
         obj->bufsz = 0;
         obj->pos = 0;
         obj->minGain = -1;
@@ -57,8 +54,6 @@ void Compressor_delete(struct Compressor *obj)
                 free(obj->peaks);
         if (obj->gain)
                 free(obj->gain);
-        if (obj->clipped)
-                free(obj->clipped);
         free(obj);
 }
 
@@ -87,7 +82,6 @@ void Compressor_setHistory(struct Compressor *obj, unsigned int history)
         
         obj->peaks = resizeArray(obj->peaks, history, obj->bufsz, 0);
         obj->gain = resizeArray(obj->gain, history, obj->bufsz, 1);
-        obj->clipped = resizeArray(obj->clipped, history, obj->bufsz, 1);
         obj->minGain = -1;
         obj->bufsz = history;
 }
@@ -169,7 +163,6 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         delta = (newGain - curGain)/ramp;
 
         ap = audio;
-        *clipped = 0;
         for (i = 0; i < count; i++)
         {
                 int sample;
@@ -178,11 +171,9 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                 sample = *ap*curGain >> 10;
                 if (sample < -32768)
                 {
-                        *clipped += -32768 - sample;
                         sample = -32768;
                 } else if (sample > 32767)
                 {
-                        *clipped += sample - 32767;
                         sample = 32767;
                 }
                 *ap++ = sample;
