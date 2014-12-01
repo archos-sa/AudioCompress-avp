@@ -22,7 +22,7 @@
 
 void showhelp(char *name)
 {
-	fprintf(stderr, "Usage: %s [options]\n", name);
+	fprintf(stderr, "Usage: %s [options] < raw_sample_in > raw_sample_out 2>log\n", name);
 	fprintf(stderr, "\nOptions:\n");
 	fprintf(stderr,
 		"\t-t #\tSet the target signal level (1-32767; default: %d)\n",
