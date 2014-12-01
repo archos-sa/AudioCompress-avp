@@ -146,7 +146,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 	//Smooth value must be independant from count size. Let's normalize it for 512 samples sount
 	if (smooth == 0) {
 	    //set the ramp time to the prorata
-	    ramp = (prefs->smooth * count * 512)/count;
+	    ramp = (prefs->smooth * 512);
 	}
         newGain = (lastGain*smooth + newGain) / (smooth + 1);
 
