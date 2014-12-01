@@ -56,20 +56,21 @@ void Compressor_delete(struct Compressor *obj)
         free(obj);
 }
 
-static int *resizeArray(int *data, int newsz, int oldsz, int clear)
+static int *resizeArray(int *data, int newsz, int oldsz, int* newPos)
 {
-        if ((newsz < oldsz) && (clear == 0)) {
+        if (newsz < oldsz) {
             int *tmp = realloc(NULL, newsz*sizeof(int));
-            memcpy(tmp, &data[oldsz-1 - newsz], newsz*sizeof(int));
+            int size_after = newsz - *newPos;
+            size_after = (size_after < 0)?0:size_after;
+	        int size_before = newsz - size_after;
+            memcpy((void*)&tmp[0], (void*)&(data[oldsz - 1 - size_after]), size_after*sizeof(int));
+	        memcpy((void*)&(tmp[size_after]), (void*)&(data[*newPos - size_before]), size_before*sizeof(int));
             free(data);
             data = tmp;
+            *newPos = 0;
         } else {
             data = realloc(data, newsz*sizeof(int));
-            if (newsz > oldsz) {
-                memset(data + oldsz, 0, sizeof(int)*(newsz - oldsz));
-             } else {
-                if (clear) memset(data, 0, sizeof(int)*newsz);
-             }
+            memset(data + oldsz, 0, sizeof(int)*(newsz - oldsz));
         }
         return data;
 }
@@ -79,7 +80,7 @@ void Compressor_setHistory(struct Compressor *obj, unsigned int history)
         if (!history)
                 history = BUCKETS;
         
-        obj->peaks = resizeArray(obj->peaks, history, obj->bufsz, 0);
+        obj->peaks = resizeArray(obj->peaks, history, obj->bufsz, &obj->pos);
         obj->minGain = -1;
         obj->bufsz = history;
 }
