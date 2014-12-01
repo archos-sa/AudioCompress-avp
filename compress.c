@@ -142,7 +142,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
             //Clamp noise
             newGain = 0;
 	} else {    
-            newGain = (1 << 10)*prefs->target/peakVal; 
+            newGain = ((1 << 10)*prefs->target)/peakVal; 
             minGain = (minGain<0)?newGain:minGain;
             minGain = (minGain > newGain)?newGain:minGain;
 
