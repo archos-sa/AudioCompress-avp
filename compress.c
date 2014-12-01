@@ -105,6 +105,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         int slot = (obj->pos + 1) % obj->bufsz;
         int ramp = count;
         int delta;
+	int smooth = (prefs->smooth * 512)/count;
         ap = audio;
 
         if (!lastGain)
@@ -143,7 +144,11 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 
         //! Adjust the gain with inertia from the previous gain value
 	//Smooth value must be independant from count size. Let's normalize it for 512 samples sount
-        newGain = (lastGain*(prefs->smooth * 512/count - 1) + newGain) / prefs->smooth * 512/count;
+	if (smooth == 0) {
+	    //set the ramp time to the prorata
+	    ramp = (prefs->smooth * count * 512)/count;
+	}
+        newGain = (lastGain*smooth + newGain) / (smooth + 1);
 
         //! Make sure it's no less than 1:1
         if (newGain < (1 << 10))
