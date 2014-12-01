@@ -65,7 +65,7 @@ void Compressor_delete(struct Compressor *obj)
 static int *resizeArray(int *data, int newsz, int oldsz, int clear)
 {
         if ((newsz < oldsz) && (clear == 0)) {
-            int tmp = realloc(NULL, newsz*sizeof(int));
+            int *tmp = realloc(NULL, newsz*sizeof(int));
             memcpy(tmp, &data[oldsz-1 - newsz], newsz*sizeof(int));
             free(data);
             data = tmp;
