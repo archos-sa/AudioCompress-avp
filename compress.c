@@ -42,7 +42,7 @@ struct Compressor *Compressor_new(unsigned int history)
         obj->bufsz = 0;
         obj->pos = 0;
         obj->minGain = -1;
-	obj->lastGain = 0;
+        obj->lastGain = 0;
         
         Compressor_setHistory(obj, history);
         
@@ -62,9 +62,9 @@ static int *resizeArray(int *data, int newsz, int oldsz, int* newPos)
             int *tmp = realloc(NULL, newsz*sizeof(int));
             int size_after = newsz - *newPos;
             size_after = (size_after < 0)?0:size_after;
-	        int size_before = newsz - size_after;
+            int size_before = newsz - size_after;
             memcpy((void*)&tmp[0], (void*)&(data[oldsz - 1 - size_after]), size_after*sizeof(int));
-	        memcpy((void*)&(tmp[size_after]), (void*)&(data[*newPos - size_before]), size_before*sizeof(int));
+            memcpy((void*)&(tmp[size_after]), (void*)&(data[*newPos - size_before]), size_before*sizeof(int));
             free(data);
             data = tmp;
             *newPos = 0;
@@ -105,7 +105,7 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         int slot = (obj->pos + 1) % obj->bufsz;
         int ramp = count;
         int delta;
-	int smooth = (prefs->smooth * 512)/count;
+        int smooth = (prefs->smooth * 512)/count;
         ap = audio;
 
         if (!lastGain)
@@ -134,20 +134,23 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         }
 
         //! Determine target gain
-        newGain = ((1 << 10)*prefs->target/peakVal > (prefs->maxgain<< 10))?(prefs->maxgain<< 10):((1 << 10)*prefs->target)/peakVal;
-        minGain = (minGain<0)?newGain:minGain;
-        minGain = (minGain > newGain)?newGain:minGain;
-
-        //! Make sure it's no more than the maximum gain value
-        if (newGain > minGain + (prefs->maxgain << 10))
-            newGain = minGain + (prefs->maxgain << 10);
+        if (peakMax > 20) {
+            newGain = ((1 << 10)*prefs->target)/peakVal;
+            minGain = (minGain<0)?newGain:minGain;
+            minGain = (minGain > newGain)?newGain:minGain;
+            //! Make sure it's no more than the maximum gain value
+            if (newGain > minGain + (prefs->maxgain << 10))
+                newGain = minGain + (prefs->maxgain << 10);
+        } else {
+            newGain = ((1 << 10)*prefs->target/peakVal > (prefs->maxgain<< 10))?(prefs->maxgain<< 10):((1 << 10)*prefs->target)/peakVal;
+        }
 
         //! Adjust the gain with inertia from the previous gain value
-	//Smooth value must be independant from count size. Let's normalize it for 512 samples sount
-	if (smooth == 0) {
-	    //set the ramp time to the prorata
-	    ramp = (prefs->smooth * 512);
-	}
+        //Smooth value must be independant from count size. Let's normalize it for 512 samples sount
+        if (smooth == 0) {
+            //set the ramp time to the prorata
+            ramp = (prefs->smooth * 512);
+        }
         newGain = (lastGain*smooth + newGain) / (smooth + 1);
 
         //! Make sure it's no less than 1:1
