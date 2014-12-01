@@ -104,10 +104,13 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
         int peakVal = 1;
         int peakPos = 0;
         int slot = (obj->pos + 1) % obj->bufsz;
-        int *clipped = obj->clipped + slot;
         int ramp = count;
         int delta;
         ap = audio;
+
+        if (!curGain)
+                curGain = 1 << 10;
+
         for (i = 0; i < count; i++)
         {
                 int val = *ap++;
@@ -158,8 +161,6 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 
         if (!ramp)
                 ramp = 1;
-        if (!curGain)
-                curGain = 1 << 10;
         delta = (newGain - curGain)/ramp;
 
         ap = audio;
