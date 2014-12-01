@@ -127,12 +127,12 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                 }
         }
         peaks[slot] = peakVal;
-
+        int peakMax = peakVal;
         for (i = 0; i < obj->bufsz; i++)
         {
-                if (peaks[i] > peakVal)
+                if (peaks[i] > peakMax)
                 {
-                        peakVal = peaks[i];
+                        peakMax = peaks[i];
                         peakPos = 0;
                 }
         }
