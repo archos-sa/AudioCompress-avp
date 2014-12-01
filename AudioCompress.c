@@ -96,7 +96,7 @@ int Run(int argc, char *argv[], struct Compressor *cmp)
 
 		case 's':
 			cfg->smooth = atoi(optarg);
-			if (cfg->smooth < 1 || cfg->smooth > 15)
+			if (cfg->smooth < 0 || cfg->smooth > 15)
 			{
 				fprintf(stderr,
 					"Invalid smoothing value %s\n",
