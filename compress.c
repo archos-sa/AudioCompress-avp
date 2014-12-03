@@ -95,25 +95,29 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
 {
         struct CompressorConfig *prefs = Compressor_getConfig(obj);
         int16_t *ap;
-        int i;
+        int i, p;
         int *peaks = obj->peaks;
         int minGain = obj->minGain;
         int lastGain = obj->lastGain;
         int newGain;
         int peakVal = 1;
         int peakPos = 0;
-        int slot = (obj->pos + 1) % obj->bufsz;
-        int ramp = count;
+        int ramp = 512;
         int delta;
-        int smooth = (prefs->smooth * 512)/count;
+        int smooth = prefs->smooth;
         ap = audio;
 
-        if (!lastGain)
+        for (p = 0; p <= (count+511)/512; p++) {
+            int packetCount = ((p * 512)<count)?512:((p*512) - count);
+            if (packetCount == 0) return;
+            int slot = (obj->pos + 1) % obj->bufsz;
+            int16_t *peakap = ap;
+            if (!lastGain)
                 lastGain = 1 << 10;
 
-        for (i = 0; i < count; i++)
-        {
-                int val = *ap++;
+            for (i = 0; i < packetCount; i++)
+            {
+                int val = *peakap++;
                 if (val < 0)
                         val = -val;
                 if (val > peakVal)
@@ -121,59 +125,53 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                         peakVal = val;
                         peakPos = i;
                 }
-        }
-        peaks[slot] = peakVal;
-        int peakMax = peakVal;
-        for (i = 0; i < obj->bufsz; i++)
-        {
+            }
+            peaks[slot] = peakVal;
+            int peakMax = peakVal;
+            for (i = 0; i < obj->bufsz; i++)
+            {
                 if (peaks[i] > peakMax)
                 {
                         peakMax = peaks[i];
                         peakPos = 0;
                 }
-        }
+            }
 
-        //! Determine target gain
-        if (peakMax > 20) {
-            newGain = ((1 << 10)*prefs->target)/peakVal;
-            minGain = (minGain<0)?newGain:minGain;
-            minGain = (minGain > newGain)?newGain:minGain;
-            //! Make sure it's no more than the maximum gain value
-            if (newGain > minGain + (prefs->maxgain << 10))
-                newGain = minGain + (prefs->maxgain << 10);
-        } else {
-            newGain = ((1 << 10)*prefs->target/peakVal > (prefs->maxgain<< 10))?(prefs->maxgain<< 10):((1 << 10)*prefs->target)/peakVal;
-        }
+            //! Determine target gain
+            if (peakMax > 20) {
+                newGain = ((1 << 10)*prefs->target)/peakVal;
+                minGain = (minGain<0)?newGain:minGain;
+                minGain = (minGain > newGain)?newGain:minGain;
+                //! Make sure it's no more than the maximum gain value
+                if (newGain > minGain + (prefs->maxgain << 10))
+                    newGain = minGain + (prefs->maxgain << 10);
+            } else {
+                newGain = ((1 << 10)*prefs->target/peakVal > (prefs->maxgain<< 10))?(prefs->maxgain<< 10):((1 << 10)*prefs->target)/peakVal;
+            }
 
-        //! Adjust the gain with inertia from the previous gain value
-        //Smooth value must be independant from count size. Let's normalize it for 512 samples sount
-        if (smooth == 0) {
-            //set the ramp time to the prorata
-            ramp = (prefs->smooth * 512);
-        }
-        newGain = (lastGain*smooth + newGain) / (smooth + 1);
+            //! Adjust the gain with inertia from the previous gain value
+            newGain = (lastGain*smooth + newGain) / (smooth + 1);
 
-        //! Make sure it's no less than 1:1
-        if (newGain < (1 << 10))
-            newGain = 1 << 10;
+            //! Make sure it's no less than 1:1
+            if (newGain < (1 << 10))
+                newGain = 1 << 10;
 
-        //! Make sure the adjusted gain won't cause clipping
-        if ((peakVal*newGain >> 10) > 32767)
-        {
-            newGain = (32767 << 10)/peakVal;
-            //! Truncate the ramp time
-            ramp = peakPos;
-        }
-        //! Record the new gain
-        obj->lastGain = newGain;
+            //! Make sure the adjusted gain won't cause clipping
+            if ((peakVal*newGain >> 10) > 32767)
+            {
+                newGain = (32767 << 10)/peakVal;
+                //! Truncate the ramp time
+                ramp = peakPos;
+            }
+            //! Record the new gain
+            obj->lastGain = newGain;
 
-        if (!ramp)
+            if (!ramp)
                 ramp = 1;
-        delta = (newGain - lastGain)/ramp;
+            delta = (newGain - lastGain)/ramp;
 
-        ap = audio;
-        for (i = 0; i < count; i++)
-        {
+            for (i = 0; i < packetCount; i++)
+            {
                 int sample;
 
                 //! Amplify the sample
@@ -192,9 +190,10 @@ void Compressor_Process_int16(struct Compressor *obj, int16_t *audio,
                         lastGain += delta;
                 else
                         lastGain = newGain;
-        }
+            }
 
-        obj->pos = slot;
-        obj->minGain = minGain;
+            obj->pos = slot;
+            obj->minGain = minGain;
+	}
 }
 
